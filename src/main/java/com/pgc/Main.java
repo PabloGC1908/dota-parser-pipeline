@@ -1,5 +1,6 @@
 package com.pgc;
 
+import com.pgc.db.DBConnection;
 import com.pgc.processor.HeroProcessor;
 import skadistats.clarity.processor.entities.Entities;
 import skadistats.clarity.processor.runner.SimpleRunner;
@@ -12,8 +13,11 @@ import java.awt.*;
 //TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
 // click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
 public class Main {
+    public static DBConnection db = new DBConnection();
 
     public static void main(String[] args) throws Exception {
+
+        db.init();
 
         if (args.length == 0) {
             System.out.println("Debes pasar un replay .dem");
