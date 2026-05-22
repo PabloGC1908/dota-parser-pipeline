@@ -1,18 +1,29 @@
 package com.pgc.processor;
 
+import com.pgc.db.DBConnection;
 import com.pgc.model.Hero;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import skadistats.clarity.event.Insert;
 import skadistats.clarity.model.Entity;
 import skadistats.clarity.model.FieldPath;
-import skadistats.clarity.processor.entities.OnEntityCreated;
-import skadistats.clarity.processor.entities.OnEntityDeleted;
-import skadistats.clarity.processor.entities.OnEntityUpdated;
+import skadistats.clarity.processor.entities.*;
+import skadistats.clarity.processor.reader.OnTickEnd;
+import skadistats.clarity.processor.runner.Context;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 
 public class HeroProcessor {
-
+    @Insert
+    private Entities entities;
     private final Map<Integer, Hero> heroes = new HashMap<>();
+    private int lastProcessedSecond = -1;
+    private final int gameStartTick = -1;
+    private final int pausedTicksAtStart = 0;
+    private int totalTicks = 0;
+    private static final Logger log = LoggerFactory.getLogger(HeroProcessor.class);
 
     @OnEntityCreated
     public void onEntityCreated(Entity entity) {
@@ -29,50 +40,122 @@ public class HeroProcessor {
 
             heroes.put(id, hero);
 
-            System.out.println("Hero creado: " + dtName);
+            log.info("Hero creado: {}", dtName);
         }
     }
 
-    @OnEntityUpdated
-    public void onEntityUpdated(Entity entity, FieldPath[] updatedPaths, int numUpdatedPaths) {
+//    @OnEntityUpdated
+//    public void onEntityUpdated(Entity entity, FieldPath[] updatedPaths, int numUpdatedPaths) {
+//
+//        if (!entity.getDtClass().getDtName().startsWith("CDOTA_Unit_Hero")) {
+//            return;
+//        }
+//
+//        Hero hero = heroes.get(entity.getIndex());
+//
+//        if (hero == null) {
+//            return;
+//        }
+//
+//        Number health = entity.getProperty("m_iHealth");
+//        Number x = entity.getProperty("CBodyComponent.m_cellX");
+//        Number y = entity.getProperty("CBodyComponent.m_cellY");
+//
+//        Entity rules = entities.getByDtName("CDOTAGamerulesProxy");
+//        if (rules != null) {
+//            Float gameTime = rules.getProperty("m_pGameRules.m_fGameTime");
+//
+//            if (gameTime != null) {
+//                int currentSecond = Math.round(gameTime);
+//
+//                if (currentSecond != lastProcessedSecond) {
+//                    lastProcessedSecond = currentSecond;
+//
+//                    System.out.println(
+//                            "Segundo: " + currentSecond +
+//                                    ", Hero: " + entity.getDtClass().getDtName() +
+//                                    ", HP=" + health // Usamos la variable health que ya extrajimos
+//                    );
+//                }
+//            }
+//        }
+//    }
 
-        String dtName = entity.getDtClass().getDtName();
+    @OnTickEnd
+    public void onTickEnd(boolean isFull) {
+        Entity rules = entities.getByDtName("CDOTAGamerulesProxy");
+        if (rules == null) return;
 
-        if (!dtName.startsWith("CDOTA_Unit_Hero")) {
+        Integer gameState = rules.getProperty("m_pGameRules.m_nGameState");
+
+        if (gameState == null || gameState != 5) {
             return;
         }
 
-        Hero hero = heroes.get(entity.getIndex());
+        // Detecta si el juego está pausado
+        Object isPausedObj = rules.getProperty("m_pGameRules.m_bGamePaused");
+        boolean isPaused = false;
 
-        if (hero == null) return;
-
-        Integer health = entity.getProperty("m_iHealth");
-        Integer x = entity.getProperty("CBodyComponent.m_cellX");
-        Integer y = entity.getProperty("CBodyComponent.m_cellY");
-
-        if (health != null) {
-            hero.setHealth(health);
+        if (isPausedObj instanceof Boolean) {
+            isPaused = (Boolean) isPausedObj;
+        } else if (isPausedObj instanceof Integer) {
+            isPaused = ((Integer) isPausedObj) == 1;
         }
 
-        if (x != null && y != null) {
-            hero.setPosition(x, y);
+        if (isPaused) {
+            return;
         }
 
-        System.out.println(
-                "Hero actualizado: " +
-                        dtName +
-                        " HP=" + health + " Pos_X=" + x + " Pos_Y=" + y
-        );
+        totalTicks++;
+
+        // reloj
+        int currentSecond = totalTicks / 30;
+
+        if (currentSecond != lastProcessedSecond) {
+            lastProcessedSecond = currentSecond;
+
+            processAllHeroes(currentSecond);
+        }
     }
 
-    @OnEntityDeleted
-    public void onEntityDeleted(Entity entity) {
+    private void processAllHeroes(int second) {
+        for (Integer heroId : heroes.keySet()) {
+            Entity hero = entities.getByIndex(heroId);
 
-        heroes.remove(entity.getIndex());
+            if (hero == null) continue;
 
-        System.out.println(
-                "Hero eliminado: " +
-                        entity.getDtClass().getDtName()
-        );
+            String name = hero.getDtClass().getDtName();
+            if (!name.startsWith("CDOTA_Unit_Hero")) {
+                continue;
+            }
+
+            // Ilusiones
+            Integer replicatingHandle = hero.getProperty("m_hReplicatingOtherHeroModel");
+
+            // Ignoramos los valores conocidos de "Handle Nulo" en Source 2 (2097151, 16777215, y -1)
+            if (replicatingHandle != null
+                    && replicatingHandle != 2097151
+                    && replicatingHandle != 16777215
+                    && replicatingHandle != -1) {
+                continue;
+            }
+
+            Integer health = hero.getProperty("m_iHealth");
+            Integer cellX = hero.getProperty("CBodyComponent.m_cellX");
+            Integer cellY = hero.getProperty("CBodyComponent.m_cellY");
+
+            log.info("[Segundo {}] {} -> HP: {} | Pos: ({}, {})", second, name, health, cellX, cellY);
+        }
     }
+
+//    @OnEntityDeleted
+//    public void onEntityDeleted(Entity entity) {
+//
+//        heroes.remove(entity.getIndex());
+//
+//        System.out.println(
+//                "Hero eliminado: " +
+//                        entity.getDtClass().getDtName()
+//        );
+//    }
 }
