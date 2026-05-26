@@ -1,24 +1,14 @@
 package com.pgc;
 
-import com.pgc.db.DBConnection;
-import com.pgc.processor.HeroProcessor;
-import skadistats.clarity.processor.entities.Entities;
+import com.pgc.processor.MainProcessor;
 import skadistats.clarity.processor.runner.SimpleRunner;
 import skadistats.clarity.source.MappedFileSource;
 import skadistats.clarity.source.Source;
 
-import javax.swing.*;
-import java.awt.*;
-
 //TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
 // click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
 public class Main {
-    public static DBConnection db = new DBConnection();
-
     public static void main(String[] args) throws Exception {
-
-        db.init();
-
         if (args.length == 0) {
             System.out.println("Debes pasar un replay .dem");
             return;
@@ -28,7 +18,7 @@ public class Main {
 
         SimpleRunner runner = new SimpleRunner(source);
 
-        HeroProcessor processor = new HeroProcessor();
+        MainProcessor processor = new MainProcessor();
 
         runner.runWith(
                 processor
