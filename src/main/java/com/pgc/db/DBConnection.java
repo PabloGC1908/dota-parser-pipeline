@@ -12,11 +12,8 @@ import java.util.Map;
 
 public class DBConnection {
     private Connection connection;
-
-    // Almacena todos los statements precompilados usando una etiqueta (ej. "POSITIONS", "KILLS")
-    private Map<String, PreparedStatement> statements = new HashMap<>();
-    private Map<String, Integer> batchCounters = new HashMap<>();
-
+    private final Map<String, PreparedStatement> statements = new HashMap<>();
+    private final Map<String, Integer> batchCounters = new HashMap<>();
     private final int BATCH_SIZE = 1000;
 
     private static final Logger log = LoggerFactory.getLogger(DBConnection.class);
