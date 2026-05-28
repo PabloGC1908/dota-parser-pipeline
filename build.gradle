@@ -18,6 +18,7 @@ dependencies {
     implementation 'org.slf4j:slf4j-api:2.0.13'
     implementation 'ch.qos.logback:logback-classic:1.5.13'
     implementation("com.microsoft.sqlserver:mssql-jdbc:13.5.0.jre8-preview")
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.21.3")
 }
 
 application {

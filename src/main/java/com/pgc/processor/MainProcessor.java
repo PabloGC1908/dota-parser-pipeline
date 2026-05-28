@@ -9,7 +9,9 @@ import skadistats.clarity.model.CombatLogEntry;
 import skadistats.clarity.model.Entity;
 import skadistats.clarity.model.GameEvent;
 import skadistats.clarity.processor.entities.*;
+import skadistats.clarity.processor.gameevents.OnCombatLogEntry;
 import skadistats.clarity.processor.gameevents.OnGameEvent;
+import skadistats.clarity.processor.reader.OnTickEnd;
 import skadistats.clarity.wire.dota.common.proto.DOTACombatLog;
 
 import java.time.Duration;
@@ -97,7 +99,7 @@ public class MainProcessor {
 //        }
 //    }
 
-    // @OnCombatLogEntry
+    //@OnCombatLogEntry
     public void onCombatLogEntry(CombatLogEntry cle) {
         Duration gameTimeMillis = Duration.ofMillis((int) (1000.0f * cle.getTimestamp()));
         LocalTime gameTime = LocalTime.MIDNIGHT.plus(gameTimeMillis);
@@ -458,7 +460,7 @@ public class MainProcessor {
         log.info("{}", event.toString());
     }
 
-    //@OnTickEnd
+    @OnTickEnd
     public void onTickEnd(boolean isFull) {
         Entity rules = entities.getByDtName("CDOTAGamerulesProxy");
         if (rules == null) return;
@@ -478,7 +480,6 @@ public class MainProcessor {
             return;
         }
 
-        // Detecta si el juego está pausado
         if (isGamePaused(rules)) {
             return;
         }
@@ -510,27 +511,23 @@ public class MainProcessor {
     }
 
     public void extractAndSaveMatchMetadata() {
-        // Buscamos la entidad principal de las reglas del juego
         Entity rules = entities.getByDtName("CDOTAGamerulesProxy");
         if (rules == null) {
             System.err.println("No se pudo encontrar la entidad GameRules.");
             return;
         }
 
-        // 1. Extraer el Match ID (El motor a veces lo guarda como Number genérico)
         Number matchIdNum = rules.getProperty("m_pGameRules.m_unMatchID64");
         if (matchIdNum == null) matchIdNum = rules.getProperty("m_pGameRules.m_unMatchID");
         long matchId = (matchIdNum != null) ? matchIdNum.longValue() : 0L;
 
-        // 2. Extraer al Ganador (2 = Radiant, 3 = Dire)
+        // Ganador (2 = Radiant, 3 = Dire)
         Integer winner = rules.getProperty("m_pGameRules.m_nGameWinner");
         Boolean didRadiantWin = null;
         if (winner != null && (winner == 2 || winner == 3)) {
             didRadiantWin = (winner == 2);
         }
 
-        // 3. Extraer Tiempos (First Blood y Duración)
-        Float firstBlood = rules.getProperty("m_pGameRules.m_flFirstBloodTime");
         Float startTime = rules.getProperty("m_pGameRules.m_flGameStartTime");
         Float endTime = rules.getProperty("m_pGameRules.m_flGameEndTime");
 
@@ -539,10 +536,6 @@ public class MainProcessor {
             durationSeconds = Math.round(endTime - startTime);
         }
 
-        Integer firstBloodTimeInt = (firstBlood != null) ? Math.round(firstBlood) : null;
-
-        // 4. Enviar a la base de datos
-        // Mandamos 'null' a las fechas y equipos porque tu DAG de STRATZ hará un UPDATE luego
         dbConnection.addToBatch(
                 "MATCH_INFO",
                 matchId,
@@ -550,13 +543,13 @@ public class MainProcessor {
                 durationSeconds,
                 null, // StartDateTime
                 null, // EndDateTime
-                firstBloodTimeInt,
+                null, // firstBloodTime
                 null, // RadiantTeamId
                 null, // DireTeamId
                 null  // GameVersionId
         );
 
-        System.out.println("Datos del Match " + matchId + " encolados exitosamente.");
+        log.info("Datos del Match {} encolados exitosamente.", matchId);
     }
 
     private boolean isIllusion(Entity hero) {
