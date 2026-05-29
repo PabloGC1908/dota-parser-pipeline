@@ -40,7 +40,6 @@ public class MainProcessor {
 
     public MainProcessor() {
         dbConnection = DBConnection.getInstance();
-        dbConnection.init();
     }
 
     @OnEntityCreated

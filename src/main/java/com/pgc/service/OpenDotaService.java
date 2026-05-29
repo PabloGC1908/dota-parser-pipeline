@@ -79,7 +79,7 @@ public class OpenDotaService {
     }
 
     public void saveMatch(Match match) {
-        DBConnection dbConnection = getDbConnection();
+        DBConnection dbConnection = DBConnection.getInstance();
 
         dbConnection.addToBatch(
                 "insert_match",
@@ -94,35 +94,6 @@ public class OpenDotaService {
                 match.firstBloodTime(),
                 match.didRadiantWin()
         );
-
-        dbConnection.close();
-    }
-
-    private static DBConnection getDbConnection() {
-        DBConnection dbConnection = DBConnection.getInstance();
-
-        dbConnection.init();
-
-        dbConnection.registerStatement(
-                "insert_match",
-                """
-                INSERT INTO Match (
-                    match_id,
-                    start_date_time,
-                    end_date_time,
-                    duration_seconds,
-                    dire_team_id,
-                    radiant_team_id,
-                    replay_url,
-                    patch,
-                    first_blood_time_seconds,
-                    radiant_win
-                )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """
-        );
-
-        return dbConnection;
     }
 
     public OffsetDateTime convertUnixToDate(long unixDate) {
