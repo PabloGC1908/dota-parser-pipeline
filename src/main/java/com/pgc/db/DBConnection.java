@@ -18,6 +18,18 @@ public class DBConnection {
 
     private static final Logger log = LoggerFactory.getLogger(DBConnection.class);
 
+    private static DBConnection instance;
+
+    private DBConnection() {
+    }
+
+    public static synchronized DBConnection getInstance() {
+        if (instance == null)
+            instance = new DBConnection();
+
+        return instance;
+    }
+
     public void init() {
         log.info("Inicializando conexión a base de datos...");
         try {

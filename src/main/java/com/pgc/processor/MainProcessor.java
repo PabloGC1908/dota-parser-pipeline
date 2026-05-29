@@ -39,7 +39,7 @@ public class MainProcessor {
     private static final Logger log = LoggerFactory.getLogger(MainProcessor.class);
 
     public MainProcessor() {
-        dbConnection = new DBConnection();
+        dbConnection = DBConnection.getInstance();
         dbConnection.init();
     }
 
