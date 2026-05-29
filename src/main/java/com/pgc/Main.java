@@ -16,7 +16,7 @@ public class Main {
         Source source = new MappedFileSource(args[0]);
         SimpleRunner runner = new SimpleRunner(source);
 
-        OpenDotaService openDotaService = new OpenDotaService(args[0]);
+        OpenDotaService openDotaService = new OpenDotaService();
 
         openDotaService.downloadMatch(args[0]);
 
