@@ -12,6 +12,7 @@ public record Match(
         Integer firstBloodTime,
         Boolean didRadiantWin,
         Integer patch,
-        String replayUrl
+        String replayUrl,
+        long leagueId
 ) {
 }
