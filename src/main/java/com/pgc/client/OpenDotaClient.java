@@ -40,7 +40,6 @@ public class OpenDotaClient {
     }
 
     public long[] getLeagueMatchesIds(long leagueId) {
-        HttpClient client = HttpClient.newHttpClient();
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(openDotaUrl + "leagues/" +  leagueId + "/matchIds"))
                 .GET()
@@ -56,8 +55,6 @@ public class OpenDotaClient {
             throw new RuntimeException(e);
         }
 
-        ObjectMapper mapper = new ObjectMapper();
-
         try {
             return mapper.readValue(
                     response.body(),
@@ -68,23 +65,36 @@ public class OpenDotaClient {
         }
     }
 
-    private JsonNode getJson(String endpoint)
-            throws IOException, InterruptedException {
+    private JsonNode getJson(String endpoint) throws IOException, InterruptedException {
+        int intentosReconexion = 3;
 
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(openDotaUrl + endpoint))
-                .GET()
-                .build();
+        while (intentosReconexion > 0) {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(openDotaUrl + endpoint))
+                    .GET()
+                    .build();
 
-        HttpResponse<String> response = client.send(
-                request,
-                HttpResponse.BodyHandlers.ofString()
-        );
+            HttpResponse<String> response = client.send(
+                    request,
+                    HttpResponse.BodyHandlers.ofString()
+            );
 
-        if (response.statusCode() != 200) {
+            if (response.statusCode() == 200) {
+                return mapper.readTree(response.body());
+            }
+
+            if (response.statusCode() == 429) {
+                log.warn("Rate limit alcanzado. Espera de 3 segundos...");
+
+                Thread.sleep(3000);
+                intentosReconexion--;
+
+                continue;
+            }
+
             throw new RuntimeException("Error HTTP " + response.statusCode() + " para " + endpoint);
         }
 
-        return mapper.readTree(response.body());
+        throw new RuntimeException("Máximo número de reintentos alcanzado");
     }
 }
