@@ -20,13 +20,13 @@ public class Main {
 
         DBConnection dbConnection = runDbConnection();
 
-        Source source = new MappedFileSource(args[0]);
-        SimpleRunner runner = new SimpleRunner(source);
+//        Source source = new MappedFileSource(args[0]);
+//        SimpleRunner runner = new SimpleRunner(source);
 
         OpenDotaService openDotaService = new OpenDotaService();
-        openDotaService.downloadMatch(args[0]);
+        openDotaService.downloadLeague(args[0]);
 
-        MainProcessor processor = new MainProcessor();
+//        MainProcessor processor = new MainProcessor();
 
 //        runner.runWith(
 //                processor
@@ -45,7 +45,7 @@ public class Main {
                 "insert_match",
                 """
                 INSERT INTO Match (
-                    match_id,
+                    id,
                     start_date_time,
                     end_date_time,
                     duration_seconds,
@@ -59,6 +59,22 @@ public class Main {
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """
         );
+
+        dbConnection.registerStatement(
+                "insert_league",
+                """
+                INSERT INTO League (
+                    id,
+                    name,
+                    ticket,
+                    banner,
+                    tier
+                )
+                VALUES (?, ?, ?, ?, ?)
+                """
+        );
+
+
         return dbConnection;
     }
 }
