@@ -1,20 +1,17 @@
 package com.pgc;
 
 import com.pgc.db.DBConnection;
-import com.pgc.processor.MainProcessor;
-import com.pgc.service.OpenDotaService;
+import com.pgc.client.OpenDotaClient;
+import com.pgc.service.LeagueService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import skadistats.clarity.processor.runner.SimpleRunner;
-import skadistats.clarity.source.MappedFileSource;
-import skadistats.clarity.source.Source;
 
 public class Main {
     private static final Logger log = LoggerFactory.getLogger(Main.class);
 
     public static void main(String[] args) throws Exception {
         if (args.length == 0) {
-            log.error("Debes pasar un replay .dem");
+            log.error("Debes ingresar el id de la liga");
             return;
         }
 
@@ -23,8 +20,11 @@ public class Main {
 //        Source source = new MappedFileSource(args[0]);
 //        SimpleRunner runner = new SimpleRunner(source);
 
-        OpenDotaService openDotaService = new OpenDotaService();
-        openDotaService.downloadLeague(args[0]);
+        long leagueId = Long.parseLong(args[0]);
+
+        LeagueService leagueService = new LeagueService();
+        leagueService.insertLeague(leagueId);
+        leagueService.insertLeagueMatches(leagueId);
 
 //        MainProcessor processor = new MainProcessor();
 
@@ -54,9 +54,10 @@ public class Main {
                     replay_url,
                     patch,
                     first_blood_time_seconds,
-                    radiant_win
+                    radiant_win,
+                    league_id
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """
         );
 
