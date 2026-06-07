@@ -6,6 +6,8 @@ import com.pgc.mapper.MatchMapper;
 import com.pgc.model.Match;
 import com.pgc.repository.MatchRepository;
 
+import java.util.Set;
+
 public class MatchService {
     private final OpenDotaClient openDotaClient;
     private final MatchMapper matchMapper;
@@ -29,5 +31,17 @@ public class MatchService {
         Match match = matchMapper.map(jsonMatch, matchId);
 
         matchRepository.saveMatch(match);
+    }
+
+    public int getLeagueMatchesCounts(long leagueId) {
+        return matchRepository.countLeagueMatches(leagueId);
+    }
+
+    public Set<Long> getMatchesIdsByLeagueId(long leagueId) {
+        return matchRepository.getLeagueMatchIds(leagueId);
+    }
+
+    public long getRandomMatch() {
+        return 0;
     }
 }
