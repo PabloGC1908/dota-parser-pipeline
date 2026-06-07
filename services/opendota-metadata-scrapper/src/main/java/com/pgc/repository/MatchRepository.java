@@ -3,11 +3,17 @@ package com.pgc.repository;
 import com.pgc.db.DBConnection;
 import com.pgc.model.Match;
 
-public class MatchRepository {
-    public void saveMatch(Match match) {
-        DBConnection db = DBConnection.getInstance();
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.HashSet;
+import java.util.Set;
 
-        db.addToBatch(
+public class MatchRepository {
+    DBConnection dbConnection = DBConnection.getInstance();
+
+    public void saveMatch(Match match) {
+        dbConnection.addToBatch(
                 "insert_match",
                 match.id(),
                 match.startDateTime(),
@@ -21,5 +27,50 @@ public class MatchRepository {
                 match.didRadiantWin(),
                 match.leagueId()
         );
+    }
+
+    public int countLeagueMatches(long leagueId) {
+        String sql =
+        """
+            SELECT COUNT(*)
+            FROM Match
+            WHERE league_id = ?
+        """;
+
+        try (PreparedStatement stmt = dbConnection.getConnection().prepareStatement(sql)) {
+            stmt.setLong(1, leagueId);
+
+            ResultSet rs = stmt.executeQuery();
+
+            rs.next();
+
+            return rs.getInt(1);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public Set<Long> getLeagueMatchIds(long leagueId) {
+        String sql = """
+            SELECT id
+            FROM Match
+            WHERE league_id = ?
+        """;
+
+        Set<Long> matchIds = new HashSet<>();
+
+        try (PreparedStatement stmt = dbConnection.getConnection().prepareStatement(sql)) {
+            stmt.setLong(1, leagueId);
+            ResultSet rs = stmt.executeQuery();
+
+            while (rs.next()) {
+                matchIds.add(rs.getLong("id"));
+            }
+
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+
+        return matchIds;
     }
 }
