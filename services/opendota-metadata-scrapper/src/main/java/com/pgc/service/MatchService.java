@@ -2,6 +2,7 @@ package com.pgc.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.pgc.client.OpenDotaClient;
+import com.pgc.dto.MatchUrlDto;
 import com.pgc.mapper.MatchMapper;
 import com.pgc.model.Match;
 import com.pgc.repository.MatchRepository;
@@ -41,7 +42,7 @@ public class MatchService {
         return matchRepository.getLeagueMatchIds(leagueId);
     }
 
-    public long getRandomMatch() {
-        return 0;
+    public MatchUrlDto getRandomMatch() {
+        return matchRepository.getRandomMatch();
     }
 }
