@@ -1,8 +1,6 @@
 package com.pgc;
 
 import com.pgc.db.DBConnection;
-import com.pgc.client.OpenDotaClient;
-import com.pgc.dto.MatchUrlDto;
 import com.pgc.service.LeagueService;
 import com.pgc.service.MatchService;
 import org.slf4j.Logger;
@@ -34,13 +32,13 @@ public class Main {
 //                processor
 //        );
 
-        MatchUrlDto matchUrlDto = matchService.getRandomMatch();
+        String matchJson = matchService.getRandomMatch();
 
 
         dbConnection.close();
 
         log.info("Replay procesado correctamente.");
-        log.info("Partida aleatoria: {}", matchUrlDto.toString());
+        log.info("Partida aleatoria: {}", matchJson);
     }
 
     private static DBConnection runDbConnection() {

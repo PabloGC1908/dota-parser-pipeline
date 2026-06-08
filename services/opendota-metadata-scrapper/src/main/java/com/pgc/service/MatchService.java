@@ -1,6 +1,8 @@
 package com.pgc.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pgc.client.OpenDotaClient;
 import com.pgc.dto.MatchUrlDto;
 import com.pgc.mapper.MatchMapper;
@@ -42,7 +44,14 @@ public class MatchService {
         return matchRepository.getLeagueMatchIds(leagueId);
     }
 
-    public MatchUrlDto getRandomMatch() {
-        return matchRepository.getRandomMatch();
+    public String getRandomMatch() {
+        MatchUrlDto matchUrlDto = matchRepository.getRandomMatch();
+        ObjectMapper objectMapper = new ObjectMapper();
+
+        try {
+            return objectMapper.writeValueAsString(matchUrlDto);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
