@@ -2,7 +2,9 @@ package com.pgc;
 
 import com.pgc.db.DBConnection;
 import com.pgc.client.OpenDotaClient;
+import com.pgc.dto.MatchUrlDto;
 import com.pgc.service.LeagueService;
+import com.pgc.service.MatchService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,18 +25,22 @@ public class Main {
         long leagueId = Long.parseLong(args[0]);
 
         LeagueService leagueService = new LeagueService();
+        MatchService matchService = new MatchService();
         leagueService.insertLeague(leagueId);
         leagueService.insertLeagueMatches(leagueId);
-
 //        MainProcessor processor = new MainProcessor();
 
 //        runner.runWith(
 //                processor
 //        );
 
+        MatchUrlDto matchUrlDto = matchService.getRandomMatch();
+
+
         dbConnection.close();
 
         log.info("Replay procesado correctamente.");
+        log.info("Partida aleatoria: {}", matchUrlDto.toString());
     }
 
     private static DBConnection runDbConnection() {

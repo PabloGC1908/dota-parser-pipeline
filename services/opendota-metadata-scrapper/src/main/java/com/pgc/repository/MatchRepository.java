@@ -1,6 +1,7 @@
 package com.pgc.repository;
 
 import com.pgc.db.DBConnection;
+import com.pgc.dto.MatchUrlDto;
 import com.pgc.model.Match;
 
 import java.sql.PreparedStatement;
@@ -72,5 +73,31 @@ public class MatchRepository {
         }
 
         return matchIds;
+    }
+
+
+    public MatchUrlDto getRandomMatch() {
+        String sql = """
+            SELECT TOP 1
+                id,
+                replay_url
+            FROM Match
+            ORDER BY NEWID()
+            """;
+
+        try (
+            PreparedStatement stmt = dbConnection.getConnection().prepareStatement(sql);
+            ResultSet rs = stmt.executeQuery()
+        ) {
+            if (rs.next())
+                return new MatchUrlDto(
+                        rs.getLong("id"),
+                        rs.getString("replay_url")
+                );
+
+            return null;
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
