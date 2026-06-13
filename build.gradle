@@ -1,0 +1,12 @@
+tasks.register('copyJars', Copy) {
+
+    dependsOn(
+        ':services:opendota-metadata-scrapper:jar',
+        ':services:telemetry-parser:jar'
+    )
+
+    from(project(':services:opendota-metadata-scrapper').layout.buildDirectory.dir('libs'))
+    from(project(':services:telemetry-parser').layout.buildDirectory.dir('libs'))
+
+    into(layout.projectDirectory.dir('jars'))
+}

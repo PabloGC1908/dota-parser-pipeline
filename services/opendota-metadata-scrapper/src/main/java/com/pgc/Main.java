@@ -38,7 +38,7 @@ public class Main {
         dbConnection.close();
 
         log.info("Replay procesado correctamente.");
-        log.info("Partida aleatoria: {}", matchJson);
+        System.out.println(matchJson);
     }
 
     private static DBConnection runDbConnection() {

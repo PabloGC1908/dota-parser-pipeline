@@ -1,2 +1,10 @@
 .idea/
 .venv/
+
+airflow.cfg
+simple_auth_manager_passwords.json.generated
+airflow.db-shm
+airflow.db-wal
+airflow.db
+
+/logs/
