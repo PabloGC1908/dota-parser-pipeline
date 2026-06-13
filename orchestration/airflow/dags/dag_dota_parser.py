@@ -11,9 +11,10 @@ DAG_DIR = os.path.dirname(os.path.abspath(__file__))
 JAR_PATH = os.path.abspath(
     os.path.join(
         DAG_DIR,
-        "../../../services/opendota-metadata-scrapper/build/libs/metadata-scraper.jar"
+        "../../../jars/opendota-metadata-scrapper-1.0-SNAPSHOT-all.jar"
     )
 )
+JAR_PATH = os.path.abspath(JAR_PATH)
 
 default_args = {
     "owner": "Pablo Guerra",
@@ -38,22 +39,49 @@ with DAG(
 
     metadata_ingestion = BashOperator(
         task_id="metadata_ingestion",
-        bash_command=f'java -jar {JAR_PATH} {{{{ params.league_id }}}} | grep -o "{{.*}}"',
+        bash_command=f"java -jar {JAR_PATH} 19101",
+        env={
+            "DB_URL": "jdbc:sqlserver://172.24.32.1:1433;databaseName=dota_db_parser;encrypt=false",
+            "DB_USER": "dota_user",
+            "DB_PASSWORD": "guerra2350"
+        },
         do_xcom_push=True
+    )
+
+    debug_xcom = BashOperator(
+        task_id="debug_xcom",
+        bash_command="""
+        echo 'XCOM={{ ti.xcom_pull(task_ids="metadata_ingestion") }}'
+        """
     )
 
     replay_download = BashOperator(
         task_id="replay_download",
-        bash_command=f'java -jar {JAR_PATH} {{{{ params.league_id }}}} | grep -o "{{.*}}"',
+        bash_command="""
+        JSON='{{ ti.xcom_pull(task_ids="metadata_ingestion") }}'
+
+        REPLAY_URL=$(echo "$JSON" | jq -r '.replayUrl')
+
+        mkdir -p /tmp/dota_replays
+
+        FILE_NAME=$(basename "$REPLAY_URL")
+
+        wget -O /tmp/dota_replays/$FILE_NAME "$REPLAY_URL"
+
+        bunzip2 -f /tmp/dota_replays/$FILE_NAME
+
+        echo "/tmp/dota_replays/${FILE_NAME%.bz2}"
+        """,
         do_xcom_push=True
     )
 
     telemetry_parser = BashOperator(
         task_id="telemetry_parser",
         bash_command="""
-        java -jar \
-        /opt/airflow/jars/telemetry-parser.jar
-        """
+            DEM_FILE='{{ ti.xcom_pull(task_ids="replay_download") }}'
+    
+            java -jar /mnt/c/.../telemetry-parser-1.0-SNAPSHOT.jar "$DEM_FILE"
+            """
     )
 
     fin = EmptyOperator(
@@ -61,4 +89,4 @@ with DAG(
     )
 
 
-    inicio >> metadata_ingestion >> replay_download >> telemetry_parser >> fin
+    inicio >> metadata_ingestion >> debug_xcom >> replay_download >> telemetry_parser >> fin
