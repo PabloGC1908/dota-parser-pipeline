@@ -17,6 +17,7 @@ public class OpenDotaClient {
     private final String openDotaUrl = "https://api.opendota.com/api/";
     private final HttpClient client = HttpClient.newHttpClient();
     private final ObjectMapper mapper = new ObjectMapper();
+    private long lastRequestTime = 0;
 
     public OpenDotaClient() {
     }
@@ -40,32 +41,17 @@ public class OpenDotaClient {
     }
 
     public long[] getLeagueMatchesIds(long leagueId) {
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(openDotaUrl + "leagues/" +  leagueId + "/matchIds"))
-                .GET()
-                .build();
-
-        HttpResponse<String> response;
         try {
-            response = client.send(
-                    request,
-                    HttpResponse.BodyHandlers.ofString()
-            );
-        } catch (IOException | InterruptedException e) {
-            throw new RuntimeException(e);
-        }
+            JsonNode json = getJson("leagues/" + leagueId + "/matchIds");
 
-        try {
-            return mapper.readValue(
-                    response.body(),
-                    long[].class
-            );
-        } catch (JsonProcessingException e) {
+            return mapper.treeToValue(json, long[].class);
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
 
     private JsonNode getJson(String endpoint) throws IOException, InterruptedException {
+        waitForRateLimit();
         int intentosReconexion = 3;
 
         while (intentosReconexion > 0) {
@@ -84,9 +70,12 @@ public class OpenDotaClient {
             }
 
             if (response.statusCode() == 429) {
-                log.warn("Rate limit alcanzado. Espera de 3 segundos...");
+                String retryAfter = response.headers().firstValue("Retry-After").orElse("60");
+                long waitSeconds = Long.parseLong(retryAfter);
 
-                Thread.sleep(3000);
+                log.warn("Rate limit alcanzado. Esperando {} segundos", waitSeconds);
+
+                Thread.sleep(waitSeconds * 1000);
                 intentosReconexion--;
 
                 continue;
@@ -96,5 +85,17 @@ public class OpenDotaClient {
         }
 
         throw new RuntimeException("Máximo número de reintentos alcanzado");
+    }
+
+    private synchronized void waitForRateLimit() throws InterruptedException {
+        long now = System.currentTimeMillis();
+        long elapsed = now - lastRequestTime;
+        long minInterval = 1000;
+
+        if (elapsed < minInterval) {
+            Thread.sleep(minInterval - elapsed);
+        }
+
+        lastRequestTime = System.currentTimeMillis();
     }
 }

@@ -1,6 +1,7 @@
 plugins {
     id 'java'
     id 'application'
+    id("com.gradleup.shadow") version "9.4.2"
 }
 
 group = 'com.pgc'
@@ -13,7 +14,12 @@ repositories {
 dependencies {
     testImplementation platform('org.junit:junit-bom:6.0.0')
     testImplementation 'org.junit.jupiter:junit-jupiter'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    implementation("com.skadistats:clarity:4.0.1")
+    implementation("org.slf4j:slf4j-api:2.0.13")
+    implementation("ch.qos.logback:logback-classic:1.5.33")
+    implementation("com.microsoft.sqlserver:mssql-jdbc:13.5.0.jre8-preview")
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.21.3")
 }
 
 application {
