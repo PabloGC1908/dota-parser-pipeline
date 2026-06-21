@@ -8,12 +8,11 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class DBConnection {
     private Connection connection;
-    private final Map<String, PreparedStatement> statements = new LinkedHashMap<>();
+    private final Map<String, PreparedStatement> statements = new HashMap<>();
     private final Map<String, Integer> batchCounters = new HashMap<>();
     private final int BATCH_SIZE = 1000;
 
@@ -91,8 +90,15 @@ public class DBConnection {
                 log.debug("Query [{}] lleva {} registros en batch", queryName, currentCount);
             }
 
-            if (currentCount >= BATCH_SIZE) {
-                flushBatches();
+
+            if (currentCount % BATCH_SIZE == 0) {
+                long start = System.currentTimeMillis();
+                int[] results = stmt.executeBatch();
+                long elapsed = System.currentTimeMillis() - start;
+
+                connection.commit();
+
+                log.info("Batch ejecutado [{}] - {} registros procesados en {} ms", queryName, results.length, elapsed);
             }
 
         } catch (SQLException e) {
@@ -100,44 +106,24 @@ public class DBConnection {
         }
     }
 
-    public void flushBatches() throws SQLException {
-        long start = System.currentTimeMillis();
-        int totalExecuted = 0;
-
-        for (Map.Entry<String, PreparedStatement> entry : statements.entrySet()) {
-            String qName = entry.getKey();
-            PreparedStatement statement = entry.getValue();
-            int pending = batchCounters.getOrDefault(qName, 0);
-
-            if (pending > 0) {
-                int[] results = statement.executeBatch();
-                totalExecuted += results.length;
-                batchCounters.put(qName, 0);
-                log.debug("Batch ejecutado [{}] - {} registros procesados", qName, results.length);
-            }
-        }
-
-        if (totalExecuted > 0) {
-            connection.commit();
-            long elapsed = System.currentTimeMillis() - start;
-            log.info("Flush global completado. Se procesaron {} registros en total en {} ms", totalExecuted, elapsed);
-        }
-    }
-
     public void close() {
         try {
-            flushBatches();
-
             for (Map.Entry<String, PreparedStatement> entry : statements.entrySet()) {
                 String queryName = entry.getKey();
                 PreparedStatement stmt = entry.getValue();
                 if (stmt != null) {
+                    int pending = batchCounters.getOrDefault(queryName, 0);
+
+                    log.info("Ejecutando batch final [{}] con {} registros", queryName, pending);
+
+                    stmt.executeBatch();
                     stmt.close();
+
                     log.debug("Statement [{}] cerrado", queryName);
                 }
             }
-
             if (connection != null && !connection.isClosed()) {
+                connection.commit();
                 connection.close();
                 log.info("Conexión cerrada exitosamente");
             }
@@ -145,8 +131,9 @@ public class DBConnection {
             log.error("Error al cerrar recursos de base de datos", e);
 
             try {
-                if (connection != null && !connection.isClosed()) {
+                if (connection != null) {
                     connection.rollback();
+
                     log.warn("Rollback ejecutado durante cierre");
                 }
             } catch (SQLException rollbackEx) {
