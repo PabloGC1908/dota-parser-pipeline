@@ -9,12 +9,16 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class MatchPlayer {
     private long matchId;
+
     @JsonProperty("account_id")
     private long id;
+
     @JsonProperty("name")
     private String playerName;
     private int playerSlot;
     private int heroId;
+
+    @JsonProperty("hero_variant")
     private int heroVariant;
     private int kills;
     private int assists;
